@@ -4,79 +4,78 @@
     <meta charset="UTF-8">
     <title>Mama Riot - Baby Shower Mini Game</title>
     <style>
-        body {
-            background-color: #0b0118;
-            color: #39ff14;
-            font-family: 'Courier New', Courier, monospace;
-            text-align: center;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 {
-            color: #ff00ff;
-            text-shadow: 2px 2px #00ffff;
-        }
-        
-        #gameContainer {
-            position: relative;
-            width: 800px;
-            height: 600px;
-            margin: 0 auto;
-            border: 4px solid #39ff14;
-            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        #splashScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url('poster.jpg');
-            background-size: cover;
-            background-position: center;
-            z-index: 10;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            padding-bottom: 40px;
-            cursor: pointer;
-        }
-
-        @keyframes blink {
-            0% { opacity: 1; }
-            50% { opacity: 0; }
-            100% { opacity: 1; }
-        }
-
-        .start-text {
-            color: #39ff14;
-            font-size: 28px;
-            font-weight: bold;
-            background-color: rgba(11, 1, 24, 0.8);
-            padding: 10px 20px;
-            border: 2px solid #ff00ff;
-            text-shadow: 2px 2px #000;
-            animation: blink 1.5s infinite;
-            pointer-events: none;
-        }
-
-        canvas {
-            background: linear-gradient(180deg, #120129 0%, #0b0118 100%);
-            display: block;
-        }
-
-        #instructions {
-            margin-top: 15px;
-            font-size: 18px;
-            color: #00ffff;
-        }
+        body { background-color: #0b0118; color: #39ff14; font-family: 'Courier New', Courier, monospace; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #ff00ff; text-shadow: 2px 2px #00ffff; }
+        #gameContainer { position: relative; width: 800px; height: 600px; margin: 0 auto; border: 4px solid #39ff14; box-shadow: 0 0 20px rgba(255, 0, 255, 0.4); border-radius: 10px; overflow: hidden; }
+        #splashScreen, #gameOverScreen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 10; }
+        #splashScreen { background-image: url('poster.jpg'); background-size: cover; cursor: pointer; flex-direction: column; justify-content: flex-end; padding-bottom: 40px; }
+        #gameOverScreen { background: rgba(0,0,0,0.8); flex-direction: column; display: none; }
+        .btn { color: #39ff14; font-size: 28px; font-weight: bold; background-color: rgba(11, 1, 24, 0.8); padding: 15px 30px; border: 2px solid #ff00ff; cursor: pointer; text-shadow: 2px 2px #000; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        canvas { background: linear-gradient(180deg, #120129 0%, #0b0118 100%); display: block; }
     </style>
 </head>
 <body>
-
-    <h1>MAMA RIOT: LEVEL 1</h1>
-    
+    <h1>MAMA RIOT</h1>
     <div id="gameContainer">
+        <div id="splashScreen"><div class="btn">CLICK TO START</div></div>
+        <div id="gameOverScreen"><div class="btn" onclick="resetGame()">PLAY AGAIN</div></div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const splashScreen = document.getElementById("splashScreen");
+        const gameOverScreen = document.getElementById("gameOverScreen");
+        const bgMusic = new Audio('music.mp3'); bgMusic.loop = true;
+        
+        let score = 0, gameOver = false, gameStarted = false;
+        const player = { x: 370, y: 520, width: 60, height: 60, speed: 8, dx: 0 };
+        let bullets = [], enemies = [], frameCount = 0;
+
+        function resetGame() {
+            score = 0; bullets = []; enemies = []; gameOver = false;
+            gameOverScreen.style.display = "none";
+            bgMusic.currentTime = 0; bgMusic.play();
+            gameLoop();
+        }
+
+        function startGame() {
+            if (!gameStarted) { gameStarted = true; splashScreen.style.display = "none"; bgMusic.play(); gameLoop(); }
+        }
+
+        splashScreen.addEventListener("click", startGame);
+
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") { if (!gameStarted) startGame(); else shoot(); }
+            if (gameStarted && !gameOver) {
+                if (e.code === "ArrowLeft") player.dx = -player.speed;
+                if (e.code === "ArrowRight") player.dx = player.speed;
+            }
+        });
+        document.addEventListener("keyup", (e) => { if (e.code === "ArrowLeft" || e.code === "ArrowRight") player.dx = 0; });
+
+        function shoot() { bullets.push({ x: player.x + 20, y: player.y, width: 20, height: 40 }); }
+        function spawnEnemy() { enemies.push({ x: Math.random() * 740, y: -60, width: 60, height: 60 }); }
+
+        function update() {
+            if (gameOver) return;
+            player.x = Math.max(0, Math.min(canvas.width - player.width, player.x + player.dx));
+            bullets.forEach((b, i) => { b.y -= 10; if (b.y < 0) bullets.splice(i, 1); });
+            frameCount++; if (frameCount % 120 === 0) spawnEnemy();
+            enemies.forEach((e, i) => {
+                e.y += 1;
+                if (e.y > 600) { gameOver = true; gameOverScreen.style.display = "flex"; bgMusic.pause(); }
+                bullets.forEach((b, j) => {
+                    if (b.x < e.x + 48 && b.x + 20 > e.x + 12 && b.y < e.y + 48 && b.y + 40 > e.y + 12) {
+                        enemies.splice(i, 1); bullets.splice(j, 1); score += 10;
+                    }
+                });
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, 800, 600);
+            if (gameStarted && !gameOver) {
+                ctx.fillStyle = "#39ff14"; ctx.font = "24px Courier New"; ctx.fillText("Score: " + score, 20, 4
