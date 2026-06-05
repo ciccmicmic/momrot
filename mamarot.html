@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mama Riot - Baby Shower Mini Game</title>
+    <style>
+        body {
+            background-color: #0b0118;
+            color: #39ff14;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #ff00ff;
+            text-shadow: 2px 2px #00ffff;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            margin: 0 auto;
+            border: 4px solid #39ff14;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.4);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #splashScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('poster.jpg');
+            background-size: cover;
+            background-position: center;
+            z-index: 10;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 40px;
+            cursor: pointer;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .start-text {
+            color: #39ff14;
+            font-size: 28px;
+            font-weight: bold;
+            background-color: rgba(11, 1, 24, 0.8);
+            padding: 10px 20px;
+            border: 2px solid #ff00ff;
+            text-shadow: 2px 2px #000;
+            animation: blink 1.5s infinite;
+            pointer-events: none;
+        }
+
+        canvas {
+            background: linear-gradient(180deg, #120129 0%, #0b0118 100%);
+            display: block;
+        }
+
+        #instructions {
+            margin-top: 15px;
+            font-size: 18px;
+            color: #00ffff;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>MAMA RIOT: LEVEL 1</h1>
+    
+    <div id="gameContainer">
+        <div id="splashScreen">
+            <div class="start-text">CLICK OR PRESS SPACE TO START</div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <div id="instructions">Move: ⬅️ Left / Right ➡️ | Shoot: [Space]</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const splashScreen = document.getElementById("splashScreen");
+
+        // --- KÉPEK ÉS HANGOK BETÖLTÉSE ---
+        const playerImg = new Image();
+        playerImg.src = 'player.png';
+        
+        const bulletImg = new Image();
+        bulletImg.src = 'bullet.png';
+        
+        const enemyImg = new Image();
+        enemyImg.src = 'enemy.png';
+
+        const bgMusic = new Audio('music.mp3');
+        bgMusic.loop = true;
+
+        // --- JÁTÉKVÁLTOZÓK ---
+        let score = 0;
+        let gameOver = false;
+        let gameStarted = false; 
+        
+        const player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 80,
+            width: 60,
+            height: 60,
+            speed: 7,
+            dx: 0
+        };
+
+        const bullets = [];
+        const bulletSpeed = 10;
+
+        const enemies = [];
+        const enemySpeed = 2;
+        let enemySpawnRate = 60;
+        let frameCount = 0;
+
+        // --- INDÍTÁSI LOGIKA ---
+        function startGame() {
+            if (!gameStarted) {
+                gameStarted = true;
+                splashScreen.style.display = "none";
+                bgMusic.play().catch(error => console.log("Böngésző zeneblokkolás:", error));
+            }
+        }
+
+        // Indítás egérkattintással
+        splashScreen.addEventListener("click", () => {
+            startGame();
+        });
+
+        // --- IRÁNYÍTÁS ---
+        document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+                if (!gameStarted) {
+                    startGame(); 
+                } else {
+                    shoot(); 
+                }
+            }
+            
+            if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+            
+            if (gameStarted) {
+                if (e.code === "ArrowLeft") player.dx = -player.speed;
+                if (e.code === "ArrowRight") player.dx = player.speed;
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (e.code === "ArrowLeft" || e.code === "ArrowRight") player.dx = 0;
+        });
+
+        // --- JÁTÉK LOGIKA ---
+        function shoot() {
+            if (gameOver) return;
+            bullets.push({
+                x: player.x + player.width / 2 - 10,
+                y: player.y,
+                width: 20,
+                height: 40
+            });
+        }
+
+        function spawnEnemy() {
+            const xPos = Math.random() * (canvas.width - 60);
+            enemies.push({
+                x: xPos,
+                y: -60,
+                width: 60,
+                height: 60
+            });
+        }
+
+        function update() {
+            if (gameOver || !gameStarted) return; 
+
+            player.x += player.dx;
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+            for (let i = 0; i < bullets.length; i++) {
+                bullets[i].y -= bulletSpeed;
+                if (bullets[i].y < 0) {
+                    bullets.splice(i, 1);
+                    i--;
+                }
+            }
+
+            frameCount++;
+            if (frameCount % enemySpawnRate === 0) spawnEnemy();
+
+            for (let i = 0; i < enemies.length; i++) {
+                enemies[i].y += enemySpeed;
+
+                if (enemies[i].y + enemies[i].height > canvas.height) {
+                    gameOver = true;
+                    bgMusic.pause(); 
+                }
+
+                for (let j = 0; j < bullets.length; j++) {
+                    if (
+                        bullets[j].x < enemies[i].x + enemies[i].width &&
+                        bullets[j].x + bullets[j].width > enemies[i].x &&
+                        bullets[j].y < enemies[i].y + enemies[i].height &&
+                        bullets[j].y + bullets[j].height > enemies[i].y
+                    ) {
+                        enemies.splice(i, 1);
+                        bullets.splice(j, 1);
+                        score += 10;
+                        i--;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            if (!gameStarted) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameOver) {
+                ctx.fillStyle = "#ff00ff";
+                ctx.font = "bold 50px Courier New";
+                ctx.fillText("GAME OVER!", canvas.width / 2 - 150, canvas.height / 2);
+                ctx.fillStyle = "#00ffff";
+                ctx.font = "30px Courier New";
+                ctx.fillText("Score: " + score, canvas.width / 2 - 80, canvas.height / 2 + 50);
+                return; 
+            }
+
+            if (playerImg.complete) {
+                ctx.drawImage(playerImg, player.x, player.y, player.width, player.height);
+            }
+            
+            if (bulletImg.complete) {
+                for (let i = 0; i < bullets.length; i++) {
+                    ctx.drawImage(bulletImg, bullets[i].x, bullets[i].y, bullets[i].width, bullets[i].height);
+                }
+            }
+            
+            if (enemyImg.complete) {
+                for (let i = 0; i < enemies.length; i++) {
+                    ctx.drawImage(enemyImg, enemies[i].x, enemies[i].y, enemies[i].width, enemies[i].height);
+                }
+            }
+
+            ctx.fillStyle = "#39ff14";
+            ctx.font = "bold 24px Courier New";
+            ctx.fillText("Score: " + score, 20, 40);
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
