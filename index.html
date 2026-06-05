@@ -32,7 +32,7 @@
         const enemyImg = new Image(); enemyImg.src = 'enemy.png';
         const music = new Audio('music.mp3'); music.loop = true;
 
-        let gameActive = false, score = 0;
+        let gameActive = false, score = 0, frameCount = 0;
         let player = { x: 370, y: 520, w: 60, h: 60, dx: 0 };
         let bullets = [], enemies = [];
 
@@ -50,15 +50,19 @@
 
             player.x = Math.max(0, Math.min(740, player.x + player.dx));
             bullets.forEach((b, i) => { b.y -= 10; if(b.y < 0) bullets.splice(i, 1); });
-            if(Math.random() < 0.05) enemies.push({x: Math.random()*740, y: -60});
+            
+            // Ritkított spawnolás: 120-as érték = kb 2 másodpercenként jön új szörny
+            frameCount++;
+            if(frameCount > 120) {
+                enemies.push({x: Math.random()*740, y: -60});
+                frameCount = 0;
+            }
             
             enemies.forEach((e, i) => {
-                e.y += 1.5; // Kicsit lassabb szörnyek
-                // HALÁL: Csak ha a szörny teljesen leért a képernyő aljára
+                e.y += 1.5; 
                 if(e.y > 540) { gameActive = false; over.style.display = "flex"; }
                 
                 bullets.forEach((b, j) => {
-                    // PONT: Találat esetén növeljük a pontszámot
                     if(b.x > e.x && b.x < e.x+60 && b.y > e.y && b.y < e.y+60) {
                         enemies.splice(i, 1); bullets.splice(j, 1); score += 10;
                     }
