@@ -37,6 +37,9 @@
         const over = document.getElementById("gameOverScreen");
         const board = document.getElementById("highScoreBoard");
         
+        // HITBOX beállítás
+        const HITBOX_PADDING = 15;
+
         let topScore = localStorage.getItem('mamaRiotTop') || 0;
         let topName = localStorage.getItem('mamaRiotName') || "---";
         board.innerText = `HIGH SCORE: ${topName} - ${topScore}`;
@@ -84,8 +87,15 @@
             enemies.forEach((e, i) => {
                 e.y += enemySpeed;
                 if(e.y > 540) { gameActive = false; over.style.display = "flex"; }
+                
                 bullets.forEach((b, j) => {
-                    if(b.x > e.x && b.x < e.x+60 && b.y > e.y && b.y < e.y+60) {
+                    // PONTOSÍTOTT HITBOX LOGIKA
+                    if(
+                        b.x + 20 > e.x - HITBOX_PADDING &&
+                        b.x < e.x + 60 + HITBOX_PADDING &&
+                        b.y + 40 > e.y - HITBOX_PADDING &&
+                        b.y < e.y + 60 + HITBOX_PADDING
+                    ) {
                         enemies.splice(i, 1); bullets.splice(j, 1); score += 10;
                     }
                 });
