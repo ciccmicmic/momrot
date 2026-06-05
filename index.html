@@ -20,13 +20,11 @@
     <div id="highScoreBoard">HIGH SCORE: ---</div>
     <div id="gameContainer">
         <div id="splashScreen"><div class="menuBtn">START GAME</div></div>
-        
         <div id="gameOverScreen">
             <div style="color: #ff00ff; font-size: 40px; margin-bottom: 20px;">GAME OVER!</div>
             <input type="text" id="playerName" placeholder="ENTER NAME" maxlength="10">
             <div class="menuBtn" onclick="saveScore()">SAVE SCORE</div>
         </div>
-        
         <canvas id="gameCanvas" width="800" height="600"></canvas>
     </div>
 
@@ -36,10 +34,8 @@
         const splash = document.getElementById("splashScreen");
         const over = document.getElementById("gameOverScreen");
         const board = document.getElementById("highScoreBoard");
-        
-        // HITBOX beállítás
         const HITBOX_PADDING = 15;
-
+        
         let topScore = localStorage.getItem('mamaRiotTop') || 0;
         let topName = localStorage.getItem('mamaRiotName') || "---";
         board.innerText = `HIGH SCORE: ${topName} - ${topScore}`;
@@ -48,6 +44,7 @@
         const bulletImg = new Image(); bulletImg.src = 'bullet.png';
         const enemyImg = new Image(); enemyImg.src = 'enemy.png';
         const music = new Audio('music.mp3'); music.loop = true;
+        const deathSound = new Audio('gameover.mp3'); // ÚJ HANGHATÁS
 
         let gameActive = false, score = 0, frameCount = 0;
         let player = { x: 370, y: 520, w: 60, h: 60, dx: 0 };
@@ -86,16 +83,16 @@
 
             enemies.forEach((e, i) => {
                 e.y += enemySpeed;
-                if(e.y > 540) { gameActive = false; over.style.display = "flex"; }
+                if(e.y > 540) { 
+                    gameActive = false; 
+                    music.pause(); // Zene leállítása
+                    deathSound.play(); // EFFEKT LEJÁTSZÁSA
+                    over.style.display = "flex"; 
+                }
                 
                 bullets.forEach((b, j) => {
-                    // PONTOSÍTOTT HITBOX LOGIKA
-                    if(
-                        b.x + 20 > e.x - HITBOX_PADDING &&
-                        b.x < e.x + 60 + HITBOX_PADDING &&
-                        b.y + 40 > e.y - HITBOX_PADDING &&
-                        b.y < e.y + 60 + HITBOX_PADDING
-                    ) {
+                    if(b.x + 20 > e.x - HITBOX_PADDING && b.x < e.x + 60 + HITBOX_PADDING &&
+                       b.y + 40 > e.y - HITBOX_PADDING && b.y < e.y + 60 + HITBOX_PADDING) {
                         enemies.splice(i, 1); bullets.splice(j, 1); score += 10;
                     }
                 });
