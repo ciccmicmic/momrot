@@ -11,7 +11,7 @@
         #splashScreen { background: url('poster.jpg') center/cover; cursor: pointer; justify-content: flex-end; padding-bottom: 50px; }
         #gameOverScreen { background: rgba(0,0,0,0.85); display: none; }
         .menuBtn { color: #39ff14; font-size: 30px; font-weight: bold; padding: 20px 40px; border: 3px solid #ff00ff; background: rgba(0,0,0,0.5); cursor: pointer; }
-        #highScoreBoard { color: #00ffff; font-size: 24px; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; }
+        #highScoreBoard { color: #00ffff; font-size: 24px; margin-top: 10px; background: rgba(0,0,0,0.6); padding: 10px; display: inline-block; }
     </style>
 </head>
 <body>
@@ -30,7 +30,6 @@
         const over = document.getElementById("gameOverScreen");
         const board = document.getElementById("highScoreBoard");
         
-        // Dicsőséglista betöltése
         let topScore = localStorage.getItem('mamaRiotTop') || 0;
         let topName = localStorage.getItem('mamaRiotName') || "---";
         board.innerText = `HIGH SCORE: ${topName} - ${topScore}`;
@@ -45,7 +44,6 @@
         let bullets = [], enemies = [];
 
         splash.onclick = () => { splash.style.display = "none"; gameActive = true; music.play(); loop(); };
-
         window.onkeydown = (e) => {
             if(e.code === 'ArrowLeft') player.dx = -8;
             if(e.code === 'ArrowRight') player.dx = 8;
@@ -55,22 +53,28 @@
 
         function loop() {
             if(!gameActive) return;
-
             player.x = Math.max(0, Math.min(740, player.x + player.dx));
             bullets.forEach((b, i) => { b.y -= 10; if(b.y < 0) bullets.splice(i, 1); });
-            
+
+            // DINAMIKUS NEHÉZSÉG
+            let spawnRate = Math.max(40, 180 - score / 5);
+            let enemySpeed = Math.min(5, 1.5 + score / 200);
+
             frameCount++;
-            if(frameCount > 120) { enemies.push({x: Math.random()*740, y: -60}); frameCount = 0; }
-            
+            if(frameCount > spawnRate) {
+                enemies.push({x: Math.random() * 740, y: -60});
+                frameCount = 0;
+            }
+
             enemies.forEach((e, i) => {
-                e.y += 1.5; 
+                e.y += enemySpeed;
                 if(e.y > 540) { 
-                    gameActive = false; 
-                    over.style.display = "flex"; 
+                    gameActive = false; over.style.display = "flex"; 
                     if(score > topScore) {
                         let name = prompt("ÚJ REKORD! Add meg a neved:");
                         localStorage.setItem('mamaRiotTop', score);
                         localStorage.setItem('mamaRiotName', name || "ANONIM");
+                        board.innerText = `HIGH SCORE: ${name || "ANONIM"} - ${score}`;
                     }
                 }
                 bullets.forEach((b, j) => {
