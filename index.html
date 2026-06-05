@@ -27,7 +27,6 @@
         const splash = document.getElementById("splashScreen");
         const over = document.getElementById("gameOverScreen");
         
-        // Képek inicializálása
         const playerImg = new Image(); playerImg.src = 'player.png';
         const bulletImg = new Image(); bulletImg.src = 'bullet.png';
         const enemyImg = new Image(); enemyImg.src = 'enemy.png';
@@ -51,12 +50,15 @@
 
             player.x = Math.max(0, Math.min(740, player.x + player.dx));
             bullets.forEach((b, i) => { b.y -= 10; if(b.y < 0) bullets.splice(i, 1); });
-            if(Math.random() < 0.02) enemies.push({x: Math.random()*740, y: 0});
+            if(Math.random() < 0.02) enemies.push({x: Math.random()*740, y: -60});
             
             enemies.forEach((e, i) => {
-                e.y += 2;
-                if(e.y > 600) { gameActive = false; over.style.display = "flex"; }
+                e.y += 1.5; // Kicsit lassabb szörnyek
+                // HALÁL: Csak ha a szörny teljesen leért a képernyő aljára
+                if(e.y > 540) { gameActive = false; over.style.display = "flex"; }
+                
                 bullets.forEach((b, j) => {
+                    // PONT: Találat esetén növeljük a pontszámot
                     if(b.x > e.x && b.x < e.x+60 && b.y > e.y && b.y < e.y+60) {
                         enemies.splice(i, 1); bullets.splice(j, 1); score += 10;
                     }
@@ -64,12 +66,13 @@
             });
 
             ctx.clearRect(0,0,800,600);
-            // Képek kirajzolása
-            ctx.drawImage(playerImg, player.x, player.y, 60, 60);
-            bullets.forEach(b => ctx.drawImage(bulletImg, b.x, b.y, 20, 40));
-            enemies.forEach(e => ctx.drawImage(enemyImg, e.x, e.y, 60, 60));
+            if (playerImg.complete) ctx.drawImage(playerImg, player.x, player.y, 60, 60);
+            bullets.forEach(b => { if (bulletImg.complete) ctx.drawImage(bulletImg, b.x, b.y, 20, 40); });
+            enemies.forEach(e => { if (enemyImg.complete) ctx.drawImage(enemyImg, e.x, e.y, 60, 60); });
+            
             ctx.fillStyle = "#39ff14";
-            ctx.fillText("Score: " + score, 20, 30);
+            ctx.font = "24px Courier New";
+            ctx.fillText("Score: " + score, 40, 40);
             requestAnimationFrame(loop);
         }
     </script>
